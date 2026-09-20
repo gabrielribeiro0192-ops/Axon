@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Dados - Flashcards</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #f0f6fc;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 16px;
+        }
+
+        a.back-btn {
+            color: #58a6ff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        a.back-btn:hover {
+            text-decoration: underline;
+        }
+
+        p.instructions {
+            font-size: 0.9rem;
+            color: #8b949e;
+            line-height: 1.5;
+        }
+
+        code {
+            background: #161b22;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #79c0ff;
+        }
+
+        textarea {
+            width: 100%;
+            height: 380px;
+            background-color: #161b22;
+            color: #f0f6fc;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            font-family: "Consolas", "Courier New", monospace;
+        }
+
+        textarea:focus {
+            border-color: #58a6ff;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .btn-save {
+            background-color: #238636;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background-color: #2ea043;
+        }
+
+        .btn-clear {
+            background-color: #21262d;
+            color: #f85149;
+            border: 1px solid #30363d;
+        }
+
+        .btn-clear:hover {
+            background-color: #b62324;
+            color: white;
+        }
+
+        #status {
+            font-size: 0.9rem;
+            color: #3fb950;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Base de Dados em Escrita Livre</h2>
+            <a href="index.html" class="back-btn">← Voltar aos Flashcards</a>
+        </div>
+
+        <p class="instructions">
+            Escreva cada flashcard em uma linha diferente usando o caractere barra vertical <code>|</code> para separar a <b>Pergunta</b> da <b>Resposta</b>:<br>
+            Exemplo: <code>O que é n8n? | Uma ferramenta de automação de fluxos baseada em nós</code>
+        </p>
+
+        <textarea id="data-input" placeholder="Pergunta 1 | Resposta 1&#10;Pergunta 2 | Resposta 2"></textarea>
+
+        <div class="actions">
+            <button class="btn-save" onclick="saveData()">💾 Salvar Dados</button>
+            <button class="btn-clear" onclick="clearData()">Limpar Tudo</button>
+            <span id="status">Salvo com sucesso!</span>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('data-input');
+        const status = document.getElementById('status');
+
+        // Carrega o que já estiver salvo
+        window.onload = () => {
+            const saved = localStorage.getItem('flashcards_data');
+            if (saved) {
+                input.value = saved;
+            }
+        };
+
+        function saveData() {
+            localStorage.setItem('flashcards_data', input.value);
+            status.style.opacity = '1';
+            setTimeout(() => {
+                status.style.opacity = '0';
+            }, 2000);
+        }
+
+        function clearData() {
+            if (confirm('Tem certeza que deseja apagar todos os dados salvos?')) {
+                input.value = '';
+                localStorage.removeItem('flashcards_data');
+            }
+        }
+    </script>
+</body>
+</html>
