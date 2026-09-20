@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Base de Dados - Flashcards</title>
+    <!-- Biblioteca PDF.js da Mozilla para leitura direta no navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -22,7 +24,7 @@
 
         .container {
             width: 100%;
-            max-width: 720px;
+            max-width: 760px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -46,7 +48,7 @@
             text-decoration: underline;
         }
 
-        p.instructions {
+        .instructions {
             font-size: 0.9rem;
             color: #8b949e;
             line-height: 1.5;
@@ -57,6 +59,48 @@
             padding: 2px 6px;
             border-radius: 4px;
             color: #79c0ff;
+        }
+
+        /* Área de Upload de PDF */
+        .pdf-upload-box {
+            background-color: #161b22;
+            border: 2px dashed #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pdf-upload-box:hover {
+            border-color: #58a6ff;
+        }
+
+        .pdf-info {
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-btn {
+            background-color: #21262d;
+            color: #58a6ff;
+            border: 1px solid #30363d;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .custom-file-btn:hover {
+            background-color: #30363d;
         }
 
         textarea {
@@ -82,6 +126,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         button {
@@ -116,6 +161,7 @@
 
         #status {
             font-size: 0.9rem;
+            font-weight: 500;
             color: #3fb950;
             opacity: 0;
             transition: opacity 0.3s;
@@ -126,13 +172,23 @@
 
     <div class="container">
         <div class="header">
-            <h2>Base de Dados em Escrita Livre</h2>
+            <h2>Base de Dados dos Flashcards</h2>
             <a href="index.html" class="back-btn">← Voltar aos Flashcards</a>
         </div>
 
+        <!-- Seção de Importação de PDF -->
+        <div class="pdf-upload-box">
+            <div class="pdf-info">
+                📄 <b>Carregar via PDF:</b> Selecione um arquivo para extrair o texto automaticamente.
+            </div>
+            <div>
+                <label for="pdf-input" class="custom-file-btn">Escolher PDF</label>
+                <input type="file" id="pdf-input" accept="application/pdf" onchange="handlePdfUpload(event)">
+            </div>
+        </div>
+
         <p class="instructions">
-            Escreva cada flashcard em uma linha diferente usando o caractere barra vertical <code>|</code> para separar a <b>Pergunta</b> da <b>Resposta</b>:<br>
-            Exemplo: <code>O que é n8n? | Uma ferramenta de automação de fluxos baseada em nós</code>
+            Edite ou revise as linhas abaixo. Cada card deve estar em uma linha no padrão: <code>Pergunta | Resposta</code>
         </p>
 
         <textarea id="data-input" placeholder="Pergunta 1 | Resposta 1&#10;Pergunta 2 | Resposta 2"></textarea>
@@ -145,10 +201,13 @@
     </div>
 
     <script>
+        // Configura o worker do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         const input = document.getElementById('data-input');
         const status = document.getElementById('status');
 
-        // Carrega o que já estiver salvo
+        // Carrega os dados salvos previamente
         window.onload = () => {
             const saved = localStorage.getItem('flashcards_data');
             if (saved) {
@@ -156,19 +215,62 @@
             }
         };
 
+        // Extrai texto de todas as páginas do PDF
+        async function handlePdfUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showStatus('Lendo arquivo PDF...', '#58a6ff');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = '';
+
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageStrings = textContent.items.map(item => item.str);
+                    fullText += pageStrings.join(' ') + '\n';
+                }
+
+                // Adiciona o texto extraído ao campo
+                if (input.value.trim().length > 0) {
+                    input.value += '\n' + fullText.trim();
+                } else {
+                    input.value = fullText.trim();
+                }
+
+                showStatus('Texto do PDF importado! Clique em Salvar.', '#3fb950');
+            } catch (err) {
+                console.error(err);
+                showStatus('Erro ao ler o PDF. Verifique o arquivo.', '#f85149');
+            } finally {
+                // Reseta o input para permitir carregar o mesmo arquivo se quiser
+                event.target.value = '';
+            }
+        }
+
         function saveData() {
             localStorage.setItem('flashcards_data', input.value);
-            status.style.opacity = '1';
-            setTimeout(() => {
-                status.style.opacity = '0';
-            }, 2000);
+            showStatus('Salvo com sucesso!', '#3fb950');
         }
 
         function clearData() {
-            if (confirm('Tem certeza que deseja apagar todos os dados salvos?')) {
+            if (confirm('Tem certeza que deseja apagar todo o conteúdo atual?')) {
                 input.value = '';
                 localStorage.removeItem('flashcards_data');
+                showStatus('Dados apagados!', '#f85149');
             }
+        }
+
+        function showStatus(message, color) {
+            status.innerText = message;
+            status.style.color = color;
+            status.style.opacity = '1';
+            setTimeout(() => {
+                status.style.opacity = '0';
+            }, 3000);
         }
     </script>
 </body>
